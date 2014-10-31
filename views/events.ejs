@@ -1,0 +1,28 @@
+<script type="text/template" id="template-event-list">
+	{{ $(events).each(function(i, event) { }}
+		<article>
+			<div class="col-33">
+				<img src="{{= event.get('_links').image.href }}" />
+			</div>
+			<div class="col-66">
+				<h3>{{= event.get('name') }}</h3>
+				<h4>LOCATION</h4>
+				<p>{{= event.get('location') }}</p>
+				<h4>DESCRIPTION</h4>
+				<p>{{= event.get('description') }}</p>
+				<h4 class="italic toggle"><b>See more info</b> &raquo;</h4>
+				<div class="toggle-content">
+					<h4>EVENT SCHEDULE</h4>
+					{{ for (var date in event.schedule) { }}
+						{{ var schedule = event.schedule[date] }}
+						<div class="row">
+							<div class="date">{{= date }}</div>
+							<div class="day">{{= schedule.day }}</div>
+							<div class="times">{{= schedule.startTime }} - {{= schedule.endTime }}</div>
+						</div>
+					{{ } }}
+				</div>
+			</div>
+		</article>
+	{{ }) }}
+</script>

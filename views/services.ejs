@@ -1,0 +1,14 @@
+<script type="text/template" id="template-service-list">
+	{{ $(services).each(function(i, service) { }}
+		<article>
+			<div class="col-50">
+				<img src="{{= service.img }}" />
+			</div>
+			<div class="col-50">
+				<h3>{{= service.name }}</h3>
+				<h4>DESCRIPTION</h4>
+				{{= service.desc }}
+			</div>
+		</article>
+	{{ }) }}
+</script>

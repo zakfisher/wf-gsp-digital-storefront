@@ -1,0 +1,17 @@
+<script type="text/template" id="template-deal-list">
+	{{ $(deals).each(function(i, deal) { }}
+		<article>
+			<div class="col-33">
+				<img src="{{= deal.get('_links').image.href }}" />
+			</div>
+			<div class="col-66">
+				<h3>{{= deal.retailer.get('name') }}</h3>
+				<h3 class="italic">{{= deal.get('title') }}</h3>
+				<h4>DESCRIPTION</h4>
+				<p>{{= deal.get('description') }}</p>
+				<h4 class="italic toggle"><b>Terms + Conditions</b> &raquo;</h4>
+				<p class="toggle-content">{{= deal.get('terms_and_conditions') }}</p>
+			</div>
+		</article>
+	{{ }) }}
+</script>

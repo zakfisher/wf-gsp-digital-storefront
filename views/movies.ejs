@@ -1,0 +1,67 @@
+<script type="text/template" id="template-movie-list">
+	{{ $(movies).each(function(i, movie) { }}
+		<article data-index="{{= i }}">
+			<div class="col-25">
+				<img src="//{{= movie.get('preferredImage').uri }}" height="400" />
+			</div>
+			<div class="col-25">
+				<h3>{{= movie.get('title') }}</h3>
+				{{ if (movie.get('ratings') || movie.get('runTime')) { }}
+					<p>
+						{{ if (movie.get('ratings')) { }}
+							{{= movie.get('ratings')[0].code }} / 
+						{{ } }}
+						{{= App.formatRuntime(movie.get('runTime')) }}
+					</p>
+				{{ } }}
+				<h4 class="italic toggle"><b>View Showtimes</b> &raquo;</h4>
+			</div>
+			<div class="col-50">
+				<h3>Play Trailer</h3>
+				{{ if (movie.trailer.get('response').trailers.length > 0) { }}
+				<div class="video">
+					<div class="bg"></div>
+					<div class="play-btn-circle">
+						<div class="play-btn"></div>
+					</div>
+		        </div>
+				{{ } }}
+				{{ if (movie.trailer.get('response').trailers.length == 0) { }}
+				<div class="video none">
+					<div class="msg">
+						<h1 class="italic">Sorry!</h1>
+						<p class="italic">No trailer available for this movie.</p>
+					</div>
+				</div>
+				{{ } }}
+			</div>
+			<div class="toggle-content">
+				{{ if (movie.get('longDescription')) { }}
+					<h4>DESCRIPTION</h4>
+					<p>{{= movie.get('longDescription') }}</p>
+				{{ } }}
+				<h4>SHOWTIMES</h4>
+				{{ for (var date in movie.showtimes) { }}
+					{{ var showtime = movie.showtimes[date] }}
+					<div class="row">
+						<div class="date">{{= date }}</div>
+						<div class="day">{{= showtime.day }}</div>
+						<div class="times">
+							{{ $(showtime.times).each(function(i, time) { }}
+								<span class="time">{{= time }}</span>
+							{{ }) }}
+						</div>
+					</div>
+				{{ } }}
+			</div>
+		</article>
+	{{ }) }}
+</script>
+
+<script type="text/template" id="template-movie-trailer">
+	<video preload="none" controls autoplay>
+	{{ $(trailers).each(function(j, trailer) { }}      
+    	<source src="{{= trailer.Url }}" />
+    {{ }) }}
+    </video>
+</script>
