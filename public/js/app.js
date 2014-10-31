@@ -484,7 +484,7 @@ App.Router = Backbone.Router.extend({
 $.ajaxPrefilter( function( options, originalOptions, jqXHR ) {
     options.crossDomain = true;
     if (options.url.indexOf('http') == -1) {
-        options.url = window.location.protocol + '//api.westfield.io/api' + options.url;
+        options.url = 'http://api.westfield.io/api' + options.url;
     }
 });
 
