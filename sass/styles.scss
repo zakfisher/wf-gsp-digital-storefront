@@ -35,6 +35,20 @@ html {
 	b {
 		font-size: 18px;
 	}
+	&.deal {
+		position: relative;
+
+		div.wf-wire-offers {
+			position: absolute;
+			font-size: 34px;
+			color: $red;
+			top: -4px;
+		}
+
+		b {
+			padding-left: 44px;
+		}
+	}
   }
 }
 
@@ -105,6 +119,112 @@ header {
 		background: #2b2b2b;
 		padding: 20px 0;
 	}
+
+	div.filter {
+		height: 100px;
+		position: relative;
+
+		> div {
+			float: left;
+			height: 100%;
+			position: relative;
+
+			&.col-50 {
+				width: 50%;
+			}
+
+			&.col-33 {
+				width: 33.33%;
+			}
+		}
+
+		div.select-wrapper, div.deal-toggle-btn {
+			cursor: pointer;
+			height: 50px;
+			width: 400px;
+			position: absolute;
+			top: 0;
+			bottom: 0;
+			margin: auto;
+			text-align: left;
+		}
+
+		.col-50 {
+			div.deal-toggle-btn {
+				left: 50px;
+			}	
+			div.select-wrapper {
+				right: 50px;
+			}		
+		}
+
+		div.deal-toggle-btn {
+			background: #ddd;
+		}
+
+		div.select-wrapper {
+			background: black;
+			border: 3px solid white;
+
+			div.caret {
+				height: 0;
+				width: 0;
+				position: absolute;
+				border-top: 10px solid white;
+				border-bottom: 10px solid transparent;
+				border-left: 7px solid transparent;
+				border-right: 7px solid transparent;
+				right: 20px;
+				top: 17px;
+			}
+
+			p {
+				color: white;
+				text-transform: uppercase;
+				position: absolute;
+				top: 0;
+				bottom: 0;
+				height: 18px;
+				margin: auto 20px;
+			}
+
+			ul {
+				display: none;
+				background: white;
+				position: absolute;
+				border: 1px solid black;
+				border-top: none;
+				list-style-type: none;
+				left: -4px;
+				width: 402px;
+				top: 46px;
+				height: 600px;
+				overflow: scroll;
+
+				li {
+					background: white;
+					color: black;
+					padding: 15px 20px;
+					text-transform: uppercase;
+					&:hover, &:active {
+						background: black;
+						color: white;
+					}
+				}
+			}
+		}
+
+		div.deal-toggle-btn {
+			&[data-show="all"] {
+				.show-all { display: block; }
+				.show-deals { display: none; }
+			}
+			&[data-show="deals"] {
+				.show-all { display: none; }
+				.show-deals { display: block; }
+			}
+		}
+	}
 }
 
 main {
@@ -116,8 +236,7 @@ main {
 	top: 0;
 	left: 0;
 	right: 0;
-	width: 100%;
-	max-width: $screenWidth;
+	width: $screenWidth;
 
 	div.msg {
 		text-align: center;
@@ -258,7 +377,7 @@ main {
 			margin-top: 30px;
 		}
 
-		li, p, div.row > div {
+		li, p, div.row > div, div.retailer-logo {
 			font-size: 18px;
 			line-height: 28px;
 			color: #777;
@@ -354,7 +473,56 @@ main {
 
 	&[data-page="Services"] {}
 
-	&[data-page="Stores"] {}
+	&[data-page="Stores"] {
+		padding-top: $headerHeight + 100;
+
+		article {
+			.col-33 {
+				&:nth-child(2) {
+					padding-right: 20px;
+				}
+			}
+		}
+
+		img {
+			float: left;
+		}
+
+		div.retailer-logo {
+			border: 1px solid #ccc;
+			height: 360px;
+			width: 360px;
+			position: relative;
+
+			> div {
+				width: 100%;
+				position: absolute;
+				margin: auto;
+				top: 0;
+				bottom: 0;
+				left: 0;
+				right: 0;
+				display: table;
+			}
+
+			h1, h2 {
+				font-weight: 300;
+				text-align: center;
+				text-transform: uppercase;
+			}
+
+			h1 {
+				font-size: 36px;
+				line-height: 40px;
+				word-wrap: break-word;
+			}
+
+			h2 {
+				font-size: 30px;
+				margin-top: 20px;
+			}
+		}
+	}
 
 	&[data-page="Loading"] {
 		position: fixed;

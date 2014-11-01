@@ -1,8 +1,5 @@
 App = {
-    cache: {
-        collections: {},
-        models: {}
-    },
+    cache: {},
     centre: {
         id: 'gardenstateplaza',
         name: 'Garden State Plaza',
@@ -92,10 +89,20 @@ App = {
         // OCT 17 FRIDAY 10:00am - 9:00pm
         return (s.format('MMM D dddd h:mmA') + ' - ' + e.format('h:mmA')).toUpperCase();
     },
-    load: function() {
+    formatStoreHours: function(store) {
+        var s = new moment(store.hours.date + ' ' + store.hours.opening_time);
+        var e = new moment(store.hours.date + ' ' + store.hours.closing_time);
+        // 10:00am - 9:00pm
+        return s.format('h:mmA') + ' - ' + e.format('h:mmA');
+    },
+    load: function(page) {
+        if (page != 'Loading') {
+            App.loading = page;
+        }
         App.render('Loading', '#template-loading-page', {});
     },
     render: function(page, template, data) {
+        $('header .filter').remove();
         $('main').attr('data-page', page).html(_.template($(template).html(), data));
     },
     error: function(message, title, disclaimer) {
@@ -107,8 +114,8 @@ App = {
 App.Collections = {
     Deals: Backbone.Collection.extend({
         url: '/deal/master/deals.json?centre=' + App.centre.id + '&state=live',
-        cache: function(deals, render) {
-            console.log('api');
+        cache: function(deals, cb) {
+            console.log('api - deals');
             // Fetch retailer for each deal
             var retailersFetched = 0;
             $(deals.models).each(function(i, deal) {
@@ -121,8 +128,8 @@ App.Collections = {
                         deal.retailer = retailer;
                         // Render once all retailers are cached
                         if (retailersFetched == deals.models.length) {
-                            App.cache.collections.deals = deals;
-                            render();
+                            App.cache.deals = deals;
+                            cb();
                         }
                     },
                     error: function (model, response) {
@@ -134,8 +141,8 @@ App.Collections = {
     }),
     Events: Backbone.Collection.extend({
         url: '/event/master/events.json?centre=' + App.centre.id + '&country=us&published=true',
-        cache: function(events, render) {
-            console.log('api');
+        cache: function(events, cb) {
+            console.log('api - events');
             // Sort events by end date
             events.models = events.models.sort(function(a, b) {
                 a = a.get('occurrences')[a.get('occurrences').length -1].start;
@@ -157,8 +164,8 @@ App.Collections = {
                     };
                 });
             });
-            App.cache.collections.events = events;
-            render();
+            App.cache.events = events;
+            cb();
         }
     }),
     Hours: Backbone.Collection.extend({
@@ -166,8 +173,8 @@ App.Collections = {
     }),
     Movies: Backbone.Collection.extend({
         url: 'http://data.tmsapi.com/v1/theatres/' + App.centre.theatreId + '/showings?api_key=khdmmearvwdhrskchcatf9vb&numDays=7&numDays=7&startDate=' + App.date,
-        cache: function(movies, render) {
-            console.log('api');
+        cache: function(movies, cb) {
+            console.log('api - movies');
             // Sort showtimes and Fetch trailers for each movie
             var trailersFetched = 0;
             $(movies.models).each(function(i, movie) {
@@ -196,8 +203,8 @@ App.Collections = {
                         movie.trailer = trailer;
                         // Render once all trailers are cached
                         if (trailersFetched == movies.models.length) {
-                            App.cache.collections.movies = movies;
-                            render();
+                            App.cache.movies = movies;
+                            cb();
                         }
                     },
                     error: function (model, response) {
@@ -209,18 +216,90 @@ App.Collections = {
     }),
     Stores: Backbone.Collection.extend({
         url: '/store/master/stores.json?centre_id=' + App.centre.id + '&sort=name&sort_dir=asc&per_page=1000',
-        cache: function(stores, render) {
-            console.log('api');
-            App.cache.collections.stores = stores;
-            render();
+        cache: function(stores, cb) {
+            var getStoreHours = function(storeId) {
+                var storeHoursObj = {};
+                $(App.cache.storeHours).each(function(i, obj) {
+                    if (parseInt(obj.store_id) == storeId) {
+                        storeHoursObj = obj;
+                        return;
+                    }
+                });
+                return storeHoursObj;
+            };
+
+            console.log('api - stores');
+            // Get deals
+            var deals = {};
+            $(App.cache.deals.models).each(function(i, deal) {
+                $(deal.get('deal_stores')).each(function(j, obj) {
+                    if (deals.hasOwnProperty(obj.store_service_id)) deals[obj.store_service_id].push(obj);
+                    else deals[obj.store_service_id] = [obj];
+                });
+            });
+            var retailersFetched = 0;
+            $(stores.models).each(function(i, store) {
+                store.deals = deals[store.get('id')] || [];
+                // Get categories
+                store.categories = [];
+                $(store.get('category_codes')).each(function(i, code) {
+                    var category = App.cache.categories.where({ code: code });
+                    if (category.length > 0) {
+                        store.categories.push(category[0].get('name'));
+                    }
+                });
+                // Get store hours
+                store.hours = getStoreHours(store.get('id'));
+                // Get retailer
+                var retailerId = store.get('retailer_id');
+                store.Retailer = new App.Models.Retailer();
+                store.Retailer.urlRoot += retailerId + '.json';
+                store.Retailer.fetch({
+                    success: function(retailer) {
+                        retailersFetched++;
+                        store.retailer = retailer;
+                        store.retailer.hasLogo = (typeof store.retailer.get('logo_ref') !== 'undefined');
+                        if (store.retailer.hasLogo) {
+                            store.retailer.hasLogo = (store.retailer.get('logo_ref') !== null && store.retailer.get('logo_ref').length > 0);
+                        }
+                        if (retailersFetched == stores.models.length) {
+                            App.cache.stores = stores;
+                            cb();
+                        }
+                    },
+                    error: function(model, response) {
+                        App.error('Unable to fetch retailers.', 'Stores');
+                    }
+                });
+            });
+        }
+    }),
+    Categories: Backbone.Collection.extend({
+        url: '/category/master/categories.json?centre_id=' + App.centre.id,
+        cache: function(categories, cb) {
+            console.log('api - categories');
+            console.log(categories.models);
+            App.cache.categories = categories;
+            cb();
+        }
+    }),
+    StoreHours: Backbone.Collection.extend({
+        url: '/trading-hour/master/store_trading_hours/range.json?centre_id=' + App.centre.id + '&from=' + App.date + '&to=' + App.date,
+        cache: function(storeHours, cb) {
+            console.log('api - store hours');
+            console.log(storeHours);
+            App.cache.storeHours = storeHours;
+            cb();
         }
     })
 };
+App.Collections.categories = new App.Collections.Categories;
 App.Collections.deals = new App.Collections.Deals;
 App.Collections.events = new App.Collections.Events;
 App.Collections.hours = new App.Collections.Hours;
 App.Collections.movies = new App.Collections.Movies;
 App.Collections.stores = new App.Collections.Stores;
+App.Collections.storeHours = new App.Collections.StoreHours;
 
 App.Models = {
     Retailer: Backbone.Model.extend({
@@ -235,8 +314,9 @@ App.Views = {
     Deals: Backbone.View.extend({
         render: function() {
             var render = function() {
-                var deals = App.cache.collections.deals;
+                var deals = App.cache.deals;
                 console.log(deals.models);
+                if (App.loading != 'Deals') return;
                 if (deals.models.length > 0) {
                     App.render('Deals', '#template-deal-list', {
                         deals: deals.models
@@ -248,8 +328,8 @@ App.Views = {
             };
 
             // Render with cached data
-            if (App.cache.collections.hasOwnProperty('deals')) {
-                console.log('cache');
+            if (App.cache.hasOwnProperty('deals')) {
+                console.log('cache - deals');
                 render();
                 return;
             }
@@ -268,8 +348,9 @@ App.Views = {
     Events: Backbone.View.extend({
         render: function() {
             var render = function() {
-                var events = App.cache.collections.events;
+                var events = App.cache.events;
                 console.log(events.models);
+                if (App.loading != 'Events') return;
                 if (events.models.length > 0) {
                     App.render('Events', '#template-event-list', {
                         events: events.models
@@ -281,8 +362,8 @@ App.Views = {
             };
 
             // Render with cached data
-            if (App.cache.collections.hasOwnProperty('events')) {
-                console.log('cache');
+            if (App.cache.hasOwnProperty('events')) {
+                console.log('cache - events');
                 render();
                 return;
             }
@@ -299,6 +380,22 @@ App.Views = {
         }
     }),
     Header: Backbone.View.extend({
+        el: 'header',
+        events: {
+            'click .select-wrapper': 'showSelectMenu',
+            'click .select-wrapper ul li': 'selectOption'
+        },
+        showSelectMenu: function(e) {
+            if ($(e.currentTarget).find('ul').is('.open')) {
+                $(e.currentTarget).find('ul').removeClass('open').hide();
+                return;
+            }
+            $(e.currentTarget).find('ul').addClass('open').show();
+        },
+        selectOption: function(e) {
+            $(e.currentTarget).parents('.select-wrapper').find('p').text($(e.currentTarget).text());
+            $(e.currentTarget).find('ul').removeClass('open').hide();
+        },
         render: function(title, disclaimer) {
             var defaultDisclaimer = 'Access this and and more information using the Westfield app or website.';
             $('title').html('Westfield ' + App.centre.name + ' ' + title);
@@ -352,8 +449,9 @@ App.Views = {
         },
         render: function() {
             var render = function(movies) {
-                var movies = App.cache.collections.movies;
+                var movies = App.cache.movies;
                 console.log(movies.models);
+                if (App.loading != 'Movies') return;
                 if (movies.models.length > 0) {
                     App.render('Movies', '#template-movie-list', {
                         movies: movies.models
@@ -365,8 +463,8 @@ App.Views = {
             };
 
             // Render with cached data
-            if (App.cache.collections.hasOwnProperty('movies')) {
-                console.log('cache');
+            if (App.cache.hasOwnProperty('movies')) {
+                console.log('cache - movies');
                 render();
                 return;
             }
@@ -384,20 +482,65 @@ App.Views = {
     }),
     Services: Backbone.View.extend({
         render: function() {
-            App.render('services', '#template-service-list', {
+            App.render('Services', '#template-service-list', {
                 services: App.centre.services
             });
         }
     }),
     Stores: Backbone.View.extend({
         render: function() {
-            var render = function() {
-                var stores = App.cache.collections.stores;
+            var render, fetchAllDeals, fetchAllCategories, fetchAllStoreHours, fetchAllStores;
+
+            fetchAllDeals = function() {
+                App.Collections.deals.fetch({
+                    success: function(deals) {
+                        App.Collections.deals.cache(deals, fetchAllCategories);
+                    },
+                    error: function(collection, response) {
+                        App.error('Unable to fetch deals.', 'Stores');
+                    }
+                });
+            };
+
+            fetchAllCategories = function() {
+                App.Collections.categories.fetch({
+                    success: function(categories) {
+                        App.Collections.categories.cache(categories, fetchAllStoreHours);
+                    },
+                    error: function(collection, response) {
+                        App.error('Unable to fetch categories.', 'Stores');
+                    }
+                });
+            };
+
+            fetchAllStoreHours = function() {
+                $.get(App.Collections.storeHours.url, function(storeHours) {
+                    App.Collections.storeHours.cache(storeHours, fetchAllStores);
+                }).error(function() {
+                    App.error('Unable to fetch store hours.', 'Stores');
+                });
+            };
+
+            fetchAllStores = function() {
+                App.Collections.stores.fetch({
+                    success: function(stores) {
+                        App.Collections.stores.cache(stores, render);
+                    },
+                    error: function(collection, response) {
+                        App.error('Unable to fetch stores.', 'Stores');
+                    }
+                });
+            };
+
+            render = function() {
+                var stores = App.cache.stores;
                 console.log(stores.models);
+                if (App.loading != 'Stores') return;
                 if (stores.models.length > 0) {
                     App.render('Stores', '#template-store-list', {
                         stores: stores.models
                     });
+                    $('header .disclaimer').before(_.template($('#template-store-filter').html(), {}));
                 }
                 else {
                     App.error('No stores found.', 'Stores');
@@ -405,21 +548,14 @@ App.Views = {
             };
 
             // Render with cached data
-            if (App.cache.collections.hasOwnProperty('stores')) {
-                console.log('cache');
+            if (App.cache.hasOwnProperty('stores') && App.cache.hasOwnProperty('categories')) {
+                console.log('cache - categories, store hours, stores');
                 render();
                 return;
             }
 
-            // Fetch new data
-            App.Collections.stores.fetch({
-                success: function(stores) {
-                    App.Collections.stores.cache(stores, render);
-                },
-                error: function(collection, response) {
-                    App.error('Unable to fetch stores.', 'Stores');
-                }
-            });
+            // Fetch all deals, all categories, all store hours, and all stores
+            fetchAllDeals();
         }
     })
 };
@@ -439,6 +575,7 @@ App.Router = Backbone.Router.extend({
         'stores'   : 'stores'
     },
     initialize: function() {
+        //console.log = function() {};
         Backbone.history.start({pushState: true});
         App.Views.header.renderCentreInfo();
         // Use pushState without triggering a refresh
@@ -454,27 +591,27 @@ App.Router = Backbone.Router.extend({
         });
     },
     deals: function() {
-        App.load();
+        App.load('Deals');
         App.Views.header.render('Deals & Offers');
         App.Views.deals.render();
     },
     events: function() {
-        App.load();
+        App.load('Events');
         App.Views.header.render('Upcoming Events');
         App.Views.events.render();
     },
     movies: function() {
-        App.load();
+        App.load('Movies');
         App.Views.header.render('Now Playing at AMC Theaters', 'Tickets available through the Westfield app, available on the iTunes store.');
         App.Views.movies.render();
     },
     services: function() {
-        App.load();
+        App.load('Services');
         App.Views.header.render('Center Services');
         App.Views.services.render();
     },
     stores: function() {
-        App.load();
+        App.load('Stores');
         App.Views.header.render('Stores');
         App.Views.stores.render();
     }
