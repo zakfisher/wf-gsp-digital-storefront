@@ -1,7 +1,14 @@
 <script type="text/template" id="template-error">
-	<div class="msg">
+	<div class="msg" data-page="{{= page }}">
 		<h1 class="italic">Sorry!</h1>
 		<p class="italic">{{= message }}</p>
+	</div>
+</script>
+
+
+<script type="text/template" id="template-message">
+	<div class="msg" data-page="{{= page }}">
+		<h1 class="italic">{{= message }}</h1>
 	</div>
 </script>
 

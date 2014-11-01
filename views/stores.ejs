@@ -1,6 +1,6 @@
 <script type="text/template" id="template-store-list">
 	{{ $(stores).each(function(i, store) { }}
-		<article {{ if (store.deals.length > 0) { }}deals{{ } }}>
+		<article data-categories="{{= store.get('category_codes').join(',') }}" {{ if (store.deals.length > 0) { }}deals{{ } }}>
 			<div class="col-33">
 				{{ if (store.retailer.hasLogo) { }}
 					<img src="//res.cloudinary.com/wlabs/image/upload/q_30,w_360,f_auto/{{= store.retailer.get('logo_ref') }}" />
@@ -55,10 +55,11 @@
 		<div class="col-50">
 			<div class="select-wrapper">
 				<div class="caret"></div>
-				<p>Choose Category</p>
+				<p data-code="*">Choose Category</p>
 				<ul>
+					<li data-code="*">All Categories</li>
 					{{ $(App.cache.categories.models).each(function(i, category) { }}
-					<li>{{= category.get('name') }}</li>
+					<li data-code="{{= category.get('code') }}" {{ if (category.get('children').length > 0) { }}subcategories{{ } }}>{{= category.get('name') }}</li>
 					{{ }) }}
 				</ul>
 			</div>
@@ -74,6 +75,21 @@
 					<p>Show Only Stores with Deals</p>
 				</div>
 			</div>
+		</div>
+	</div>
+</script>
+
+<script type="text/template" id="template-store-sub-filter">
+	<div class="col-33">
+		<div class="select-wrapper">
+			<div class="caret"></div>
+			<p data-code="{{= parentCode }}">Choose Sub Category</p>
+			<ul>
+				<li data-code="{{= parentCode }}">All Sub Categories</li>
+				{{ $(subCategories).each(function(i, subCategory) { }}
+				<li data-code="{{= subCategory.code }}">{{= subCategory.name }}</li>
+				{{ }) }}
+			</ul>
 		</div>
 	</div>
 </script>

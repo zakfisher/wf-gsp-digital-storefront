@@ -146,7 +146,6 @@ header {
 			top: 0;
 			bottom: 0;
 			margin: auto;
-			text-align: left;
 		}
 
 		.col-50 {
@@ -158,13 +157,75 @@ header {
 			}		
 		}
 
+		.col-33 {
+			&:nth-child(1) {
+				.select-wrapper {
+					right: -20px;
+				}
+			}
+			&:nth-child(2) {
+				.select-wrapper {
+					left: 0;
+					right: 0;
+				}
+			}
+			&:nth-child(3) {
+				.deal-toggle-btn {
+					left: -20px;
+				}
+			}
+		}
+
 		div.deal-toggle-btn {
 			background: #ddd;
+
+			> div {
+				position: absolute;
+				margin: auto;
+				top: 0;
+				bottom: 0;
+				right: 0;
+				left: 0;
+				height: 28px;
+			}
+
+			div[class*="wf-"] {
+				position: absolute;
+				font-size: 32px;
+			}
+
+			p {
+				font-size: 16px;
+				color: black;
+				font-weight: 300;
+				text-transform: uppercase;
+				position: absolute;
+				top: 7px;
+			}
+
+			div.show-all {
+				div[class*="wf-"] {
+					left: 80px;
+				}
+				p {
+					left: 130px;
+				}
+			}
+
+			div.show-deals {
+				div[class*="wf-"] {
+					left: 30px;
+				}
+				p {
+					left: 80px;
+				}
+			}
 		}
 
 		div.select-wrapper {
 			background: black;
 			border: 3px solid white;
+			text-align: left;
 
 			div.caret {
 				height: 0;
@@ -211,17 +272,21 @@ header {
 						color: white;
 					}
 				}
+
+				&.open {
+					display: block;
+				}
 			}
 		}
 
 		div.deal-toggle-btn {
 			&[data-show="all"] {
-				.show-all { display: block; }
-				.show-deals { display: none; }
-			}
-			&[data-show="deals"] {
 				.show-all { display: none; }
 				.show-deals { display: block; }
+			}
+			&[data-show="deals"] {
+				.show-all { display: block; }
+				.show-deals { display: none; }
 			}
 		}
 	}
@@ -479,7 +544,7 @@ main {
 		article {
 			.col-33 {
 				&:nth-child(2) {
-					padding-right: 20px;
+					padding-right: 40px;
 				}
 			}
 		}
@@ -540,4 +605,9 @@ main {
 		}
 	}
 
+	&[data-page="Error"], &[data-page="Message"] {
+		div.msg[data-page="Stores"] {
+			padding-top: 100px;
+		}
+	}
 }

@@ -1762,11 +1762,23 @@ if(k&&j[k]&&(e||j[k].data)||void 0!==d||"string"!=typeof b)return k||(k=i?a[h]=c
 }).call(this);
 
 App = {
-    cache: {},
-    centre: {
-        id: 'gardenstateplaza',
-        name: 'Garden State Plaza',
-        theatreId: 9312,
+    cache: {
+        completed: {
+            events: false,
+            movies: false,
+            stores: false
+        },
+        checkStatus: function() {
+            var complete = (App.cache.completed.centreHours && App.cache.completed.events && App.cache.completed.movies && App.cache.completed.stores);
+            if (App.loading == 'Cache' && complete) {
+                console.log('cache', App.cache);
+                App.message('Check JS console for cache object.', 'Cache Finished');
+                App.cache.save();
+            }
+        },
+        save: function() {
+            console.log('Cache object complete.');
+        },
         services: [
             {
                 name: 'Free Wifi',
@@ -1835,6 +1847,11 @@ App = {
             }
         ]
     },
+    centre: {
+        id: 'gardenstateplaza',
+        name: 'Garden State Plaza',
+        theatreId: 9312
+    },
     date: (function() {
         var m = new moment();
         return m.format('YYYY-MM-DD');
@@ -1862,15 +1879,27 @@ App = {
         if (page != 'Loading') {
             App.loading = page;
         }
+        if (page != 'Stores' && page != 'Error') {
+            $('header .filter').remove();
+        }
         App.render('Loading', '#template-loading-page', {});
     },
     render: function(page, template, data) {
-        $('header .filter').remove();
         $('main').attr('data-page', page).html(_.template($(template).html(), data));
     },
-    error: function(message, title, disclaimer) {
-        App.Views.header.render(title, disclaimer);
-        App.render('Error', '#template-error', { message: message });
+    error: function(message, page, disclaimer) {
+        App.Views.header.render(page, disclaimer);
+        App.render('Error', '#template-error', { 
+            page: page,
+            message: message 
+        });
+    },
+    message: function(message, page, disclaimer) {
+        App.Views.header.render(page, disclaimer);
+        App.render('Message', '#template-message', { 
+            page: page,
+            message: message 
+        });
     }
 };
 
@@ -1879,6 +1908,7 @@ App.Collections = {
         url: '/deal/master/deals.json?centre=' + App.centre.id + '&state=live',
         cache: function(deals, cb) {
             console.log('api - deals');
+            console.log(deals.models);
             // Fetch retailer for each deal
             var retailersFetched = 0;
             $(deals.models).each(function(i, deal) {
@@ -1928,6 +1958,7 @@ App.Collections = {
                 });
             });
             App.cache.events = events;
+            App.cache.completed.events = true;
             cb();
         }
     }),
@@ -1937,7 +1968,6 @@ App.Collections = {
     Movies: Backbone.Collection.extend({
         url: 'http://data.tmsapi.com/v1/theatres/' + App.centre.theatreId + '/showings?api_key=khdmmearvwdhrskchcatf9vb&numDays=7&numDays=7&startDate=' + App.date,
         cache: function(movies, cb) {
-            console.log('api - movies');
             // Sort showtimes and Fetch trailers for each movie
             var trailersFetched = 0;
             $(movies.models).each(function(i, movie) {
@@ -1967,6 +1997,8 @@ App.Collections = {
                         // Render once all trailers are cached
                         if (trailersFetched == movies.models.length) {
                             App.cache.movies = movies;
+                            App.cache.completed.movies = true;
+                            console.log('api - movies');
                             cb();
                         }
                     },
@@ -1991,7 +2023,6 @@ App.Collections = {
                 return storeHoursObj;
             };
 
-            console.log('api - stores');
             // Get deals
             var deals = {};
             $(App.cache.deals.models).each(function(i, deal) {
@@ -2006,10 +2037,8 @@ App.Collections = {
                 // Get categories
                 store.categories = [];
                 $(store.get('category_codes')).each(function(i, code) {
-                    var category = App.cache.categories.where({ code: code });
-                    if (category.length > 0) {
-                        store.categories.push(category[0].get('name'));
-                    }
+                    var category = App.cache.categoryMap[code];
+                    store.categories.push(category.name);
                 });
                 // Get store hours
                 store.hours = getStoreHours(store.get('id'));
@@ -2027,6 +2056,8 @@ App.Collections = {
                         }
                         if (retailersFetched == stores.models.length) {
                             App.cache.stores = stores;
+                            App.cache.completed.stores = true;
+                            console.log('api - stores');
                             cb();
                         }
                     },
@@ -2042,7 +2073,20 @@ App.Collections = {
         cache: function(categories, cb) {
             console.log('api - categories');
             console.log(categories.models);
+            var categoryMap = {};
+            $(categories.models).each(function(i, category) {
+                category.name = category.get('name');
+                categoryMap[category.get('code')] = category;
+                if (category.get('children').length > 0) {
+                    $(category.get('children')).each(function(j, subCategory) {
+                        categoryMap[subCategory.code] = subCategory;
+                    });
+                }
+            });
+            // Contains only parent-level categories
             App.cache.categories = categories;
+            // Contains all categories
+            App.cache.categoryMap = categoryMap;
             cb();
         }
     }),
@@ -2078,7 +2122,6 @@ App.Views = {
         render: function() {
             var render = function() {
                 var deals = App.cache.deals;
-                console.log(deals.models);
                 if (App.loading != 'Deals') return;
                 if (deals.models.length > 0) {
                     App.render('Deals', '#template-deal-list', {
@@ -2093,6 +2136,7 @@ App.Views = {
             // Render with cached data
             if (App.cache.hasOwnProperty('deals')) {
                 console.log('cache - deals');
+                console.log(App.cache.deals.models);
                 render();
                 return;
             }
@@ -2113,6 +2157,7 @@ App.Views = {
             var render = function() {
                 var events = App.cache.events;
                 console.log(events.models);
+                App.cache.checkStatus();
                 if (App.loading != 'Events') return;
                 if (events.models.length > 0) {
                     App.render('Events', '#template-event-list', {
@@ -2142,23 +2187,131 @@ App.Views = {
             });
         }
     }),
-    Header: Backbone.View.extend({
+    Filter: Backbone.View.extend({
         el: 'header',
         events: {
-            'click .select-wrapper': 'showSelectMenu',
-            'click .select-wrapper ul li': 'selectOption'
+            'click .select-wrapper': 'toggleMenuDisplay',
+            'click .select-wrapper ul li': 'selectCategory',
+            'click .deal-toggle-btn': 'toggleDealFilter'
         },
-        showSelectMenu: function(e) {
+        filter: function() {
+            window.scrollTo(0,0);
+
+            // Remove error message
+            if ($('main.error').length > 0) {
+                $('main.error').remove();
+                $('main').show();
+            }
+
+            // Reset all results
+            $('article').hide().removeClass('visible');
+            var query = 'article';
+            var selects = $('header .filter .select-wrapper');
+            
+            // Always get code from last select
+            var selectIndex = selects.length - 1;
+            var select = selects[selectIndex];
+            var code = $(select).find('p').attr('data-code');
+            if (code !== '*') {
+                query += '[data-categories*=' + code + ']';
+            }
+
+            // Apply Category Filter
+            $(query).show().addClass('visible');
+
+            // Apply Deal Filter
+            if ($('div.deal-toggle-btn').attr('data-show') == 'deals') {
+                $('article:not([deals])').hide().removeClass('visible');
+            }
+
+            // Show Error if no results
+            if ($('article.visible').length == 0) {
+                $('main').hide().after('<main class="error" data-page="Error"></main>');
+                $('main.error').html(_.template($('#template-error').html(), { 
+                    page: 'Stores',
+                    message: 'No stores found.' 
+                }));
+                // $('div.deal-toggle-btn').attr('data-show', 'deals');
+                // App.render('Error', '#template-error', );
+            }
+        },
+        toggleMenuDisplay: function(e) {
             if ($(e.currentTarget).find('ul').is('.open')) {
-                $(e.currentTarget).find('ul').removeClass('open').hide();
+                $(e.currentTarget).find('ul').removeClass('open');
                 return;
             }
-            $(e.currentTarget).find('ul').addClass('open').show();
+            $(e.currentTarget).find('ul').addClass('open');
         },
-        selectOption: function(e) {
-            $(e.currentTarget).parents('.select-wrapper').find('p').text($(e.currentTarget).text());
-            $(e.currentTarget).find('ul').removeClass('open').hide();
+        selectCategory: function(e) {
+            // Hide menu
+            $(e.currentTarget).find('ul').removeClass('open');
+            
+            // Set current option values
+            var code = $(e.currentTarget).attr('data-code');
+            $(e.currentTarget).parents('.select-wrapper').find('p')
+                .text($(e.currentTarget).text())
+                .attr('data-code', code);
+
+            // If this is a sub category, don't render selects
+            var isSubCategory = $(e.currentTarget).parents('.col-33:nth-child(2)').length > 0;
+            if (isSubCategory) {
+                this.filter();
+                return;
+            }
+
+            /* From here on, it can only be a parent category */
+
+            // Check if category has sub-categories
+            var category = App.cache.categoryMap[code];
+            var subCategoriesExist = $(e.currentTarget).is('[subcategories]');
+            var subCategories = [];
+            if (subCategoriesExist) {
+                subCategories = category.get('children');
+            }
+
+            // If currently showing one category select
+            if ($('header .filter div.col-50').length > 0) {
+                // Add 2nd select
+                if (subCategoriesExist) {
+                    $('header .filter .col-50:nth-child(1)').after(_.template($('#template-store-sub-filter').html(), {
+                        parentCode: code,
+                        subCategories: subCategories
+                    }));
+                    $('header .filter div.col-50').addClass('col-33').removeClass('col-50');
+                }
+            }
+
+            // If currently showing two category selects
+            if ($('header .filter div.col-33').length > 0) {
+                // Remove 2nd select
+                if (!subCategoriesExist) {
+                    $('header .filter .col-33:nth-child(2)').remove();
+                    $('header .filter div.col-33').addClass('col-50').removeClass('col-33');
+                }
+                // Update 2nd select w/ new sub categories
+                else {
+                    var col = $('header .filter .col-33:nth-child(2)');
+                    col.find('p').attr('data-code', code).text('Choose Sub Category');
+                    col.find('ul').html('').append('<li data-code="' + code + '">All Sub Categories</li>');
+                    $(subCategories).each(function(i, subCategory) {
+                        col.find('ul').append('<li data-code="' + subCategory.code + '">' + subCategory.name + '</li>');
+                    });
+                }
+            }
+
+            this.filter();
         },
+        toggleDealFilter: function(e) {
+            if ($(e.currentTarget).attr('data-show') == 'deals') {
+                $(e.currentTarget).attr('data-show', 'all');
+            }
+            else {
+                $(e.currentTarget).attr('data-show', 'deals');
+            }
+            this.filter();
+        }
+    }),
+    Header: Backbone.View.extend({
         render: function(title, disclaimer) {
             var defaultDisclaimer = 'Access this and and more information using the Westfield app or website.';
             $('title').html('Westfield ' + App.centre.name + ' ' + title);
@@ -2172,6 +2325,8 @@ App.Views = {
             $('header h1').html(App.centre.name);
             App.Collections.hours.fetch({
                 success: function(hours) {
+                    console.log('api - centre hours');
+                    console.log(hours.models);
                     var open = hours.at(0).get('opening_time');
                     var close = hours.at(0).get('closing_time');
                     var openHour = parseInt(open.substr(0, 2));
@@ -2190,6 +2345,9 @@ App.Views = {
                     }
                     var range = open + ' - ' + close;
                     $('header p.hours').html('Today\'s Hours: ' + range);
+                    App.cache.centreHours = range;
+                    App.cache.completed.centreHours = true;
+                    App.cache.checkStatus();
                 },
                 error: function(collection, response) {
                     console.log('Unable to fetch hours.');
@@ -2214,6 +2372,7 @@ App.Views = {
             var render = function(movies) {
                 var movies = App.cache.movies;
                 console.log(movies.models);
+                App.cache.checkStatus();
                 if (App.loading != 'Movies') return;
                 if (movies.models.length > 0) {
                     App.render('Movies', '#template-movie-list', {
@@ -2246,7 +2405,7 @@ App.Views = {
     Services: Backbone.View.extend({
         render: function() {
             App.render('Services', '#template-service-list', {
-                services: App.centre.services
+                services: App.cache.services
             });
         }
     }),
@@ -2298,6 +2457,7 @@ App.Views = {
             render = function() {
                 var stores = App.cache.stores;
                 console.log(stores.models);
+                App.cache.checkStatus();
                 if (App.loading != 'Stores') return;
                 if (stores.models.length > 0) {
                     App.render('Stores', '#template-store-list', {
@@ -2324,6 +2484,7 @@ App.Views = {
 };
 App.Views.deals = new App.Views.Deals;
 App.Views.events = new App.Views.Events;
+App.Views.filter = new App.Views.Filter;
 App.Views.header = new App.Views.Header;
 App.Views.movies = new App.Views.Movies;
 App.Views.services = new App.Views.Services;
@@ -2331,6 +2492,7 @@ App.Views.stores = new App.Views.Stores;
 
 App.Router = Backbone.Router.extend({
     routes: {
+        'cache'    : 'cache',
         'deals'    : 'deals',
         'events'   : 'events',
         'movies'   : 'movies',
@@ -2352,6 +2514,21 @@ App.Router = Backbone.Router.extend({
             if (content.is('.open')) content.removeClass('open');
             else content.addClass('open');
         });
+    },
+    cache: function() {
+        // Cache not complete
+        if (!(App.cache.completed.centreHours && App.cache.completed.events && App.cache.completed.movies && App.cache.completed.stores)) {
+            App.Views.header.render('Building Caches...');
+            App.Views.events.render();
+            App.Views.movies.render();
+            App.Views.stores.render();
+            App.load('Cache');
+        }
+        // Cache already complete
+        else {
+            App.load('Cache');
+            App.cache.checkStatus();
+        }
     },
     deals: function() {
         App.load('Deals');

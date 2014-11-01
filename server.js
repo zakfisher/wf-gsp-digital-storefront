@@ -16,6 +16,9 @@ app.use(express.urlencoded());
 app.use(express.methodOverride());
 app.use(app.router);
 
+app.get('/cache', function(req, res) {
+	res.render('index', { title: 'Cache' });
+});
 app.get('/deals', function(req, res) {
 	res.render('index', { title: 'Deals' });
 });
