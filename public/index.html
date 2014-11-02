@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html>
+<!-- manifest="app.appcache" -->
+  <head>
+    <meta charset="utf-8">
+    <meta content="IE=edge,chrome=1" http-equiv="X-UA-Compatible">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,minimum-scale=1.0,user-scalable=no">
+    <meta name="robots" content="noindex,nofollow">
+    <title>Westfield</title>
+    <link rel="stylesheet" type="text/css" href="//cloud.typography.com/6163052/749622/css/fonts.css" />
+    <link rel="stylesheet" type="text/css" href="/css/styles.css" />
+  </head>
+  <body>
+<style type="text/css">
+	nav {
+		height: 20px;
+		width: 100%;
+		position: fixed;
+		z-index: 100;
+		width: 310px;
+		margin: 0 auto;
+		left: 0;
+		right: 0;
+	}
+	nav ul {
+		list-style-type: none;
+		padding: 0;
+	}
+	nav ul li {
+		float: left;
+		margin-left: 10px;
+	}
+	nav ul li a {
+		color: #ccc;
+		font-size: 12px;
+		text-decoration: none;
+	}
+	nav ul li a:hover {
+		color: white;
+	}
+</style>
+<nav>
+  <ul>
+  	<li><a data-bypass href="/deals">Deals</a></li>
+  	<li><a data-bypass href="/events">Events</a></li>
+  	<li><a data-bypass href="/movies">Movies</a></li>
+  	<li><a data-bypass href="/services">Services</a></li>
+  	<li><a data-bypass href="/stores">Stores</a></li>
+  	<li><a data-bypass href="/cache">Cache</a></li>
+  </ul>
+</nav>
+<header>
+  <div id="logo">
+  	<div class="wf-logo"></div>
+  </div>
+  <h1>&nbsp;</h1>
+  <p class="hours italic">&nbsp;</p>
+  <h2>&nbsp;</h2>
+  <p class="disclaimer italic">&nbsp;</p>
+</header>
+<main></main>
+<script type="text/template" id="template-deal-list">
+	{{ $(deals).each(function(i, deal) { }}
+		<article>
+			<div class="col-33">
+				<img src="{{= deal.get('_links').image.href }}" />
+			</div>
+			<div class="col-66">
+				<h3>{{= deal.retailer.get('name') }}</h3>
+				<h3 class="italic">{{= deal.get('title') }}</h3>
+				<h4>DESCRIPTION</h4>
+				<p>{{= deal.get('description') }}</p>
+				<h4 class="italic toggle"><b>Terms + Conditions</b> &raquo;</h4>
+				<p class="toggle-content">{{= deal.get('terms_and_conditions') }}</p>
+			</div>
+		</article>
+	{{ }) }}
+</script>
+<script type="text/template" id="template-event-list">
+	{{ $(events).each(function(i, event) { }}
+		<article>
+			<div class="col-33">
+				<img src="{{= event.get('_links').image.href }}" />
+			</div>
+			<div class="col-66">
+				<h3>{{= event.get('name') }}</h3>
+				<h4>LOCATION</h4>
+				<p>{{= event.get('location') }}</p>
+				<h4>DESCRIPTION</h4>
+				<p>{{= event.get('description') }}</p>
+				<h4 class="italic toggle"><b>See more info</b> &raquo;</h4>
+				<div class="toggle-content">
+					<h4>EVENT SCHEDULE</h4>
+					{{ for (var date in event.schedule) { }}
+						{{ var schedule = event.schedule[date] }}
+						<div class="row">
+							<div class="date">{{= date }}</div>
+							<div class="day">{{= schedule.day }}</div>
+							<div class="times">{{= schedule.startTime }} - {{= schedule.endTime }}</div>
+						</div>
+					{{ } }}
+				</div>
+			</div>
+		</article>
+	{{ }) }}
+</script>
+<script type="text/template" id="template-movie-list">
+	{{ $(movies).each(function(i, movie) { }}
+		<article data-index="{{= i }}">
+			<div class="col-25">
+				<img src="//{{= movie.get('preferredImage').uri }}" height="400" />
+			</div>
+			<div class="col-25">
+				<h3>{{= movie.get('title') }}</h3>
+				{{ if (movie.get('ratings') || movie.get('runTime')) { }}
+					<p>
+						{{ if (movie.get('ratings')) { }}
+							{{= movie.get('ratings')[0].code }} / 
+						{{ } }}
+						{{= App.formatRuntime(movie.get('runTime')) }}
+					</p>
+				{{ } }}
+				<h4 class="italic toggle"><b>View Showtimes</b> &raquo;</h4>
+			</div>
+			<div class="col-50">
+				<h3>Play Trailer</h3>
+				{{ if (movie.trailer.get('response').trailers.length > 0) { }}
+				<div class="video">
+					<div class="bg"></div>
+					<div class="play-btn-circle">
+						<div class="play-btn"></div>
+					</div>
+		        </div>
+				{{ } }}
+				{{ if (movie.trailer.get('response').trailers.length == 0) { }}
+				<div class="video none">
+					<div class="msg">
+						<h1 class="italic">Sorry!</h1>
+						<p class="italic">No trailer available for this movie.</p>
+					</div>
+				</div>
+				{{ } }}
+			</div>
+			<div class="toggle-content">
+				{{ if (movie.get('longDescription')) { }}
+					<h4>DESCRIPTION</h4>
+					<p>{{= movie.get('longDescription') }}</p>
+				{{ } }}
+				<h4>SHOWTIMES</h4>
+				{{ for (var date in movie.showtimes) { }}
+					{{ var showtime = movie.showtimes[date] }}
+					<div class="row">
+						<div class="date">{{= date }}</div>
+						<div class="day">{{= showtime.day }}</div>
+						<div class="times">
+							{{ $(showtime.times).each(function(i, time) { }}
+								<span class="time">{{= time }}</span>
+							{{ }) }}
+						</div>
+					</div>
+				{{ } }}
+			</div>
+		</article>
+	{{ }) }}
+</script>
+
+<script type="text/template" id="template-movie-trailer">
+	<video preload="none" controls autoplay>
+	{{ $(trailers).each(function(j, trailer) { }}      
+    	<source src="{{= trailer.Url }}" />
+    {{ }) }}
+    </video>
+</script>
+<script type="text/template" id="template-service-list">
+	{{ $(services).each(function(i, service) { }}
+		<article>
+			<div class="col-50">
+				<img src="{{= service.img }}" />
+			</div>
+			<div class="col-50">
+				<h3>{{= service.name }}</h3>
+				<h4>DESCRIPTION</h4>
+				{{= service.desc }}
+			</div>
+		</article>
+	{{ }) }}
+</script>
+<script type="text/template" id="template-store-list">
+	{{ $(stores).each(function(i, store) { }}
+		<article data-categories="{{= store.get('category_codes').join(',') }}" {{ if (store.deals.length > 0) { }}deals{{ } }}>
+			<div class="col-33">
+				{{ if (store.retailer.hasLogo) { }}
+					<img src="//res.cloudinary.com/wlabs/image/upload/q_30,w_360,f_auto/{{= store.retailer.get('logo_ref') }}" />
+				{{ } }}
+				{{ if (!store.retailer.hasLogo) { }}
+					<div class="retailer-logo">
+						<div>
+							<h1>{{= store.retailer.get('name') }}</h1>
+							<h2>At Westfield</h2>
+						</div>
+					</div>
+				{{ } }}
+			</div>
+			<div class="col-33">
+				<h4>FLOOR</h4>
+				<p>Level {{= store.get('level') }}</p>
+				<h4>SHOP CATEGORIES</h4>
+				<p>{{= store.categories.join(', ') }}</p>
+				{{ if (store.deals.length > 0) { }}
+				<h4 class="italic toggle deal">
+					<div class="wf-wire-offers"></div>
+					<b>See More Info + Deals</b> &raquo;
+				</h4>
+				{{ } }}
+			</div>
+			<div class="col-33">
+				<h4>TODAY'S HOURS</h4>
+				<p>{{= App.formatStoreHours(store) }}</p>
+				{{ if (store.get('phone_number')) { }}
+					<h4>PHONE</h4>
+					<p>{{= store.get('phone_number') }}</p>
+				{{ } }}
+			</div>
+			{{ if (store.deals.length > 0) { }}
+			<div class="toggle-content">
+				<h4><b>Take it with you - Use the Westfield App or Website for Maps &amp; Directions</b></h4>
+			{{ } }}
+			{{ if (store.deals.length == 0) { }}
+			<div class="clr">
+			{{ } }}
+				{{ if (store.get('description').length > 0) { }}
+				<h4>Description</h4>
+				<p>{{= store.get('description') }}</p>
+				{{ } }}
+			</div>
+		</article>
+	{{ }) }}
+</script>
+
+<script type="text/template" id="template-store-filter">
+	<div class="filter">
+		<div class="col-50">
+			<div class="select-wrapper">
+				<div class="caret"></div>
+				<p data-code="*">Choose Category</p>
+				<ul>
+					<li data-code="*">All Categories</li>
+					{{ $(App.cache.categories.models).each(function(i, category) { }}
+					<li data-code="{{= category.get('code') }}" {{ if (category.get('children').length > 0) { }}subcategories{{ } }}>{{= category.get('name') }}</li>
+					{{ }) }}
+				</ul>
+			</div>
+		</div>
+		<div class="col-50">
+			<div class="deal-toggle-btn" data-show="all">
+				<div class="show-all">
+					<div class="wf-wire-shopping"></div>
+					<p>Show All Stores</p>
+				</div>
+				<div class="show-deals">
+					<div class="wf-wire-offers"></div>
+					<p>Show Only Stores with Deals</p>
+				</div>
+			</div>
+		</div>
+	</div>
+</script>
+
+<script type="text/template" id="template-store-sub-filter">
+	<div class="col-33">
+		<div class="select-wrapper">
+			<div class="caret"></div>
+			<p data-code="{{= parentCode }}">Choose Sub Category</p>
+			<ul>
+				<li data-code="{{= parentCode }}">All Sub Categories</li>
+				{{ $(subCategories).each(function(i, subCategory) { }}
+				<li data-code="{{= subCategory.code }}">{{= subCategory.name }}</li>
+				{{ }) }}
+			</ul>
+		</div>
+	</div>
+</script>
+<script type="text/template" id="template-error">
+	<div class="msg" data-page="{{= page }}">
+		<h1 class="italic">Sorry!</h1>
+		<p class="italic">{{= message }}</p>
+	</div>
+</script>
+
+
+<script type="text/template" id="template-message">
+	<div class="msg" data-page="{{= page }}">
+		<h1 class="italic">{{= message }}</h1>
+	</div>
+</script>
+
+<script type="text/template" id="template-loading-page">
+	<img src="/img/loading-big.gif" />
+</script>
+	<script type="text/javascript" src="/js/concat.min.js"></script>
+  </body>
+</html>

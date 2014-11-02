@@ -708,8 +708,8 @@ App.Views = {
             };
 
             // Render with cached data
-            if (App.cache.hasOwnProperty('stores') && App.cache.hasOwnProperty('categories')) {
-                console.log('cache - categories, store hours, stores');
+            if (App.cache.hasOwnProperty('stores')) {
+                console.log('cache - stores');
                 render();
                 return;
             }

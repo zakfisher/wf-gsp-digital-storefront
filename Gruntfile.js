@@ -6,6 +6,10 @@ module.exports = function(grunt) {
             options: {
                 livereload: true
             },
+            html: {
+                files: ['views/*.ejs'],
+                tasks: ['concat:build_html']
+            },
             css: {
                 files: ['sass/*.scss'],
                 tasks: ['compass:compressed']
@@ -34,6 +38,21 @@ module.exports = function(grunt) {
                     'public/js/app.js'
                 ],
                 dest: 'public/js/concat.js'
+            },
+            build_html: {
+                src: [
+                    'views/head.ejs',
+                    'views/nav.ejs',
+                    'views/header.ejs',
+                    'views/deals.ejs',
+                    'views/events.ejs',
+                    'views/movies.ejs',
+                    'views/services.ejs',
+                    'views/stores.ejs',
+                    'views/error.ejs',
+                    'views/foot.ejs'
+                ],
+                dest: 'public/index.html'
             }
         },
         uglify: {
