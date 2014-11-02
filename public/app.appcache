@@ -1,3 +1,15 @@
 CACHE MANIFEST
-css/styles.css
-js/concat.min.js
+# version: 0.0.5
+
+NETWORK:
+*
+
+CACHE:
+#index.html
+#css/styles.css
+css/wf-icons/fonts/wf-icons.eot
+css/wf-icons/fonts/wf-icons.svg
+css/wf-icons/fonts/wf-icons.ttf
+css/wf-icons/fonts/wf-icons.woff
+#js/concat.min.js
+img/loading-big.gif

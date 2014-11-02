@@ -1,16 +1,16 @@
 <script type="text/template" id="template-deal-list">
-	{{ $(deals).each(function(i, deal) { }}
+	{{ $(App.cache.deals).each(function(i, deal) { }}
 		<article>
 			<div class="col-33">
-				<img src="{{= deal.get('_links').image.href }}" />
+				<img src="{{= deal._links.image.href }}" />
 			</div>
 			<div class="col-66">
-				<h3>{{= deal.retailer.get('name') }}</h3>
-				<h3 class="italic">{{= deal.get('title') }}</h3>
+				<h3>{{= deal.retailer.name }}</h3>
+				<h3 class="italic">{{= deal.title }}</h3>
 				<h4>DESCRIPTION</h4>
-				<p>{{= deal.get('description') }}</p>
+				<p>{{= deal.description }}</p>
 				<h4 class="italic toggle"><b>Terms + Conditions</b> &raquo;</h4>
-				<p class="toggle-content">{{= deal.get('terms_and_conditions') }}</p>
+				<p class="toggle-content">{{= deal.terms_and_conditions }}</p>
 			</div>
 		</article>
 	{{ }) }}

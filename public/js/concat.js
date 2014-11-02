@@ -1768,17 +1768,6 @@ App = {
             movies: false,
             stores: false
         },
-        checkStatus: function() {
-            var complete = (App.cache.completed.centreHours && App.cache.completed.events && App.cache.completed.movies && App.cache.completed.stores);
-            if (App.loading == 'Cache' && complete) {
-                console.log('cache', App.cache);
-                App.message('Check JS console for cache object.', 'Cache Finished');
-                App.cache.save();
-            }
-        },
-        save: function() {
-            console.log('Cache object complete.');
-        },
         services: [
             {
                 name: 'Free Wifi',
@@ -1847,6 +1836,37 @@ App = {
             }
         ]
     },
+    cacheTools: {
+        checkStatus: function() {
+            var complete = (App.cache.completed.centreHours && App.cache.completed.events && App.cache.completed.movies && App.cache.completed.stores);
+            if (App.loading == 'Cache' && complete) {
+                console.log('cache', App.cache);
+                App.message('Check JS console for cache object.', 'Cache Finished');
+                App.cacheTools.save();
+            }
+        },
+        getFromLocal: function() {
+            // Check if local cache exists
+            if (localStorage.digitalStorefrontLastCached) {
+                var lastCacheDate = localStorage.digitalStorefrontLastCached;
+                // Use local cache if valid
+                if (localStorage.digitalStorefrontLastCached == App.date) {
+                    App.cache = JSON.parse(localStorage.digitalStorefrontCache);
+                    console.log('local cache', App.cache);
+                }
+                // If local cache is invalid, wipe it
+                else {
+                    console.log('clear cache')
+                    localStorage.clear();
+                }
+            }
+        },
+        save: function() {
+            console.log('Cache object complete.');
+            localStorage.setItem('digitalStorefrontLastCached', App.date);
+            localStorage.setItem('digitalStorefrontCache', JSON.stringify(App.cache));
+        }
+    },
     centre: {
         id: 'gardenstateplaza',
         name: 'Garden State Plaza',
@@ -1870,6 +1890,9 @@ App = {
         return (s.format('MMM D dddd h:mmA') + ' - ' + e.format('h:mmA')).toUpperCase();
     },
     formatStoreHours: function(store) {
+        if (App.cache.centreHours == 'Closed today.') {
+            return 'Closed';
+        }
         var s = new moment(store.hours.date + ' ' + store.hours.opening_time);
         var e = new moment(store.hours.date + ' ' + store.hours.closing_time);
         // 10:00am - 9:00pm
@@ -1908,7 +1931,6 @@ App.Collections = {
         url: '/deal/master/deals.json?centre=' + App.centre.id + '&state=live',
         cache: function(deals, cb) {
             console.log('api - deals');
-            console.log(deals.models);
             // Fetch retailer for each deal
             var retailersFetched = 0;
             $(deals.models).each(function(i, deal) {
@@ -1918,10 +1940,10 @@ App.Collections = {
                 deal.Retailer.fetch({
                     success: function(retailer) {
                         retailersFetched++;
-                        deal.retailer = retailer;
+                        deal.set('retailer', retailer);
                         // Render once all retailers are cached
                         if (retailersFetched == deals.models.length) {
-                            App.cache.deals = deals;
+                            App.cache.deals = JSON.parse(JSON.stringify(deals.models));
                             cb();
                         }
                     },
@@ -1946,18 +1968,19 @@ App.Collections = {
             });
             // Format event schedule for each event
             $(events.models).each(function(i, event) {
-                event.schedule = {};
+                var schedule = {};
                 $(event.get('occurrences')).each(function(j, occurrence) {
                     var start = new moment(occurrence.start);
                     var end = new moment(occurrence.finish);
-                    event.schedule[start.format('MMM D')] = {
+                    schedule[start.format('MMM D')] = {
                         day: start.format('dddd'),
                         startTime: start.format('h:mmA'),
                         endTime: end.format('h:mmA')
                     };
                 });
+                event.set('schedule', schedule);
             });
-            App.cache.events = events;
+            App.cache.events = JSON.parse(JSON.stringify(events.models));
             App.cache.completed.events = true;
             cb();
         }
@@ -1972,20 +1995,21 @@ App.Collections = {
             var trailersFetched = 0;
             $(movies.models).each(function(i, movie) {
                 // Sort showtimes
-                movie.showtimes = {};
+                var showtimes = {};
                 $(movie.get('showtimes')).each(function(i, showtime) {
                     var m = new moment(showtime.dateTime);
                     var date = m.format('MMM D');
-                    if (!movie.showtimes.hasOwnProperty(date)) {
-                        movie.showtimes[date] = {
+                    if (!showtimes.hasOwnProperty(date)) {
+                        showtimes[date] = {
                             day: m.format('dddd'),
                             times: [m.format('h:mmA')]
                         };
                     }
                     else {
-                        movie.showtimes[date].times.push(m.format('h:mmA'));
+                        showtimes[date].times.push(m.format('h:mmA'));
                     }
                 });
+                movie.set('showtimes', showtimes);
                 // Fetch trailers
                 var rootId = movie.get('rootId');
                 movie.Trailer = new App.Models.Trailer();
@@ -1993,10 +2017,10 @@ App.Collections = {
                 movie.Trailer.fetch({
                     success: function(trailer) {
                         trailersFetched++;
-                        movie.trailer = trailer;
+                        movie.set('trailer', trailer);
                         // Render once all trailers are cached
                         if (trailersFetched == movies.models.length) {
-                            App.cache.movies = movies;
+                            App.cache.movies = JSON.parse(JSON.stringify(movies.models));
                             App.cache.completed.movies = true;
                             console.log('api - movies');
                             cb();
@@ -2025,23 +2049,30 @@ App.Collections = {
 
             // Get deals
             var deals = {};
-            $(App.cache.deals.models).each(function(i, deal) {
-                $(deal.get('deal_stores')).each(function(j, obj) {
+            $(App.cache.deals).each(function(i, deal) {
+                $(deal.deal_stores).each(function(j, obj) {
                     if (deals.hasOwnProperty(obj.store_service_id)) deals[obj.store_service_id].push(obj);
                     else deals[obj.store_service_id] = [obj];
                 });
             });
             var retailersFetched = 0;
             $(stores.models).each(function(i, store) {
-                store.deals = deals[store.get('id')] || [];
+                var storeDeals = deals[store.get('id')] || [];
+                store.set('deals', storeDeals);
                 // Get categories
-                store.categories = [];
+                var categories = [];
                 $(store.get('category_codes')).each(function(i, code) {
                     var category = App.cache.categoryMap[code];
-                    store.categories.push(category.name);
+                    categories.push(category.name);
                 });
+                store.set('categories', categories);
                 // Get store hours
-                store.hours = getStoreHours(store.get('id'));
+                if (App.cache.centreHours == 'Closed today.') {
+                    store.set('hours', 'Closed');
+                }
+                else {
+                    store.set('hours', getStoreHours(store.get('id')));
+                }
                 // Get retailer
                 var retailerId = store.get('retailer_id');
                 store.Retailer = new App.Models.Retailer();
@@ -2049,13 +2080,14 @@ App.Collections = {
                 store.Retailer.fetch({
                     success: function(retailer) {
                         retailersFetched++;
-                        store.retailer = retailer;
-                        store.retailer.hasLogo = (typeof store.retailer.get('logo_ref') !== 'undefined');
-                        if (store.retailer.hasLogo) {
-                            store.retailer.hasLogo = (store.retailer.get('logo_ref') !== null && store.retailer.get('logo_ref').length > 0);
+                        var hasLogo = (typeof retailer.get('logo_ref') !== 'undefined');
+                        if (hasLogo) {
+                            hasLogo = (retailer.get('logo_ref') !== null && retailer.get('logo_ref').length > 0);
                         }
+                        retailer.set('hasLogo', hasLogo);
+                        store.set('retailer', retailer);
                         if (retailersFetched == stores.models.length) {
-                            App.cache.stores = stores;
+                            App.cache.stores = JSON.parse(JSON.stringify(stores.models));
                             App.cache.completed.stores = true;
                             console.log('api - stores');
                             cb();
@@ -2072,7 +2104,6 @@ App.Collections = {
         url: '/category/master/categories.json?centre_id=' + App.centre.id,
         cache: function(categories, cb) {
             console.log('api - categories');
-            console.log(categories.models);
             var categoryMap = {};
             $(categories.models).each(function(i, category) {
                 category.name = category.get('name');
@@ -2084,7 +2115,7 @@ App.Collections = {
                 }
             });
             // Contains only parent-level categories
-            App.cache.categories = categories;
+            App.cache.categories = JSON.parse(JSON.stringify(categories.models));
             // Contains all categories
             App.cache.categoryMap = categoryMap;
             cb();
@@ -2094,7 +2125,6 @@ App.Collections = {
         url: '/trading-hour/master/store_trading_hours/range.json?centre_id=' + App.centre.id + '&from=' + App.date + '&to=' + App.date,
         cache: function(storeHours, cb) {
             console.log('api - store hours');
-            console.log(storeHours);
             App.cache.storeHours = storeHours;
             cb();
         }
@@ -2123,10 +2153,8 @@ App.Views = {
             var render = function() {
                 var deals = App.cache.deals;
                 if (App.loading != 'Deals') return;
-                if (deals.models.length > 0) {
-                    App.render('Deals', '#template-deal-list', {
-                        deals: deals.models
-                    });
+                if (deals.length > 0) {
+                    App.render('Deals', '#template-deal-list', {});
                 }
                 else {
                     App.error('No deals found.', 'Deals & Offers');
@@ -2136,7 +2164,6 @@ App.Views = {
             // Render with cached data
             if (App.cache.hasOwnProperty('deals')) {
                 console.log('cache - deals');
-                console.log(App.cache.deals.models);
                 render();
                 return;
             }
@@ -2156,13 +2183,10 @@ App.Views = {
         render: function() {
             var render = function() {
                 var events = App.cache.events;
-                console.log(events.models);
-                App.cache.checkStatus();
+                App.cacheTools.checkStatus();
                 if (App.loading != 'Events') return;
-                if (events.models.length > 0) {
-                    App.render('Events', '#template-event-list', {
-                        events: events.models
-                    });
+                if (events.length > 0) {
+                    App.render('Events', '#template-event-list', {});
                 }
                 else {
                     App.error('No events are happening today.', 'Upcoming Events');
@@ -2231,8 +2255,6 @@ App.Views = {
                     page: 'Stores',
                     message: 'No stores found.' 
                 }));
-                // $('div.deal-toggle-btn').attr('data-show', 'deals');
-                // App.render('Error', '#template-error', );
             }
         },
         toggleMenuDisplay: function(e) {
@@ -2266,8 +2288,9 @@ App.Views = {
             var subCategoriesExist = $(e.currentTarget).is('[subcategories]');
             var subCategories = [];
             if (subCategoriesExist) {
-                subCategories = category.get('children');
+                subCategories = category.children || category.get('children');
             }
+            console.log(subCategories);
 
             // If currently showing one category select
             if ($('header .filter div.col-50').length > 0) {
@@ -2323,31 +2346,45 @@ App.Views = {
         },
         renderCentreInfo: function() {
             $('header h1').html(App.centre.name);
+
+            // Render from cache
+            if (App.cache.hasOwnProperty('centreHours')) {
+                $('header p.hours').html(App.cache.centreHours);
+                return;
+            }
+
+            // Fetch new centre
             App.Collections.hours.fetch({
                 success: function(hours) {
                     console.log('api - centre hours');
                     console.log(hours.models);
-                    var open = hours.at(0).get('opening_time');
-                    var close = hours.at(0).get('closing_time');
-                    var openHour = parseInt(open.substr(0, 2));
-                    var closeHour = parseInt(close.substr(0, 2));
-                    if (openHour < 12) open += 'am';
-                    else open += 'pm';
-                    if (closeHour > 12) {
-                        closeHour -= 12;
-                        close = closeHour + close.substr(2) + 'pm';
-                    }
-                    else if (closeHour == 12) {
-                        close += 'pm';
+                    var range;
+                    if (hours.at(0).get('closed')) {
+                        range = 'Closed today.';
                     }
                     else {
-                        close += 'am';
+                        var open = hours.at(0).get('opening_time');
+                        var close = hours.at(0).get('closing_time');
+                        var openHour = parseInt(open.substr(0, 2));
+                        var closeHour = parseInt(close.substr(0, 2));
+                        if (openHour < 12) open += 'am';
+                        else open += 'pm';
+                        if (closeHour > 12) {
+                            closeHour -= 12;
+                            close = closeHour + close.substr(2) + 'pm';
+                        }
+                        else if (closeHour == 12) {
+                            close += 'pm';
+                        }
+                        else {
+                            close += 'am';
+                        }    
+                        range = 'Today\'s Hours: ' + open + ' - ' + close;
                     }
-                    var range = open + ' - ' + close;
-                    $('header p.hours').html('Today\'s Hours: ' + range);
+                    $('header p.hours').html(range);
                     App.cache.centreHours = range;
                     App.cache.completed.centreHours = true;
-                    App.cache.checkStatus();
+                    App.cacheTools.checkStatus();
                 },
                 error: function(collection, response) {
                     console.log('Unable to fetch hours.');
@@ -2371,13 +2408,10 @@ App.Views = {
         render: function() {
             var render = function(movies) {
                 var movies = App.cache.movies;
-                console.log(movies.models);
-                App.cache.checkStatus();
+                App.cacheTools.checkStatus();
                 if (App.loading != 'Movies') return;
-                if (movies.models.length > 0) {
-                    App.render('Movies', '#template-movie-list', {
-                        movies: movies.models
-                    });
+                if (movies.length > 0) {
+                    App.render('Movies', '#template-movie-list', {});
                 }
                 else {
                     App.error('No movies found.', 'Now Playing at AMC Theaters', 'Tickets available through the Westfield app, available on the iTunes store.');
@@ -2419,7 +2453,7 @@ App.Views = {
                         App.Collections.deals.cache(deals, fetchAllCategories);
                     },
                     error: function(collection, response) {
-                        App.error('Unable to fetch deals.', 'Stores');
+                        App.error('Unable to fetch deals.', 'Error');
                     }
                 });
             };
@@ -2430,16 +2464,20 @@ App.Views = {
                         App.Collections.categories.cache(categories, fetchAllStoreHours);
                     },
                     error: function(collection, response) {
-                        App.error('Unable to fetch categories.', 'Stores');
+                        App.error('Unable to fetch categories.', 'Error');
                     }
                 });
             };
 
             fetchAllStoreHours = function() {
+                if (App.cache.centreHours == 'Closed today.') {
+                    App.Collections.storeHours.cache([], fetchAllStores);
+                    return;
+                }
                 $.get(App.Collections.storeHours.url, function(storeHours) {
                     App.Collections.storeHours.cache(storeHours, fetchAllStores);
                 }).error(function() {
-                    App.error('Unable to fetch store hours.', 'Stores');
+                    App.error('Unable to fetch store hours.', 'Error');
                 });
             };
 
@@ -2449,24 +2487,23 @@ App.Views = {
                         App.Collections.stores.cache(stores, render);
                     },
                     error: function(collection, response) {
-                        App.error('Unable to fetch stores.', 'Stores');
+                        App.error('Unable to fetch stores.', 'Error');
                     }
                 });
             };
 
             render = function() {
                 var stores = App.cache.stores;
-                console.log(stores.models);
-                App.cache.checkStatus();
+                App.cacheTools.checkStatus();
                 if (App.loading != 'Stores') return;
-                if (stores.models.length > 0) {
-                    App.render('Stores', '#template-store-list', {
-                        stores: stores.models
-                    });
-                    $('header .disclaimer').before(_.template($('#template-store-filter').html(), {}));
+                if (stores.length > 0) {
+                    App.render('Stores', '#template-store-list', {});
+                    if ($('header .filter').length == 0) {
+                        $('header .disclaimer').before(_.template($('#template-store-filter').html(), {}));
+                    }
                 }
                 else {
-                    App.error('No stores found.', 'Stores');
+                    App.error('No stores found.', 'Error');
                 }
             };
 
@@ -2478,7 +2515,8 @@ App.Views = {
             }
 
             // Fetch all deals, all categories, all store hours, and all stores
-            fetchAllDeals();
+            if (!App.cache.hasOwnProperty('deals')) fetchAllDeals();
+            else fetchAllCategories();
         }
     })
 };
@@ -2500,10 +2538,11 @@ App.Router = Backbone.Router.extend({
         'stores'   : 'stores'
     },
     initialize: function() {
+        App.cacheTools.getFromLocal();
         //console.log = function() {};
-        Backbone.history.start({pushState: true});
         App.Views.header.renderCentreInfo();
         // Use pushState without triggering a refresh
+        Backbone.history.start({pushState: true});
         $(document).on('click', 'a[data-bypass]', function(e) {
             e.preventDefault();
             App.router.navigate($(e.currentTarget).attr('href'), true);
@@ -2527,7 +2566,7 @@ App.Router = Backbone.Router.extend({
         // Cache already complete
         else {
             App.load('Cache');
-            App.cache.checkStatus();
+            App.cacheTools.checkStatus();
         }
     },
     deals: function() {

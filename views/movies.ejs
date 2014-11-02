@@ -1,24 +1,24 @@
 <script type="text/template" id="template-movie-list">
-	{{ $(movies).each(function(i, movie) { }}
+	{{ $(App.cache.movies).each(function(i, movie) { }}
 		<article data-index="{{= i }}">
 			<div class="col-25">
-				<img src="//{{= movie.get('preferredImage').uri }}" height="400" />
+				<img src="//{{= movie.preferredImage.uri }}" height="400" />
 			</div>
 			<div class="col-25">
-				<h3>{{= movie.get('title') }}</h3>
-				{{ if (movie.get('ratings') || movie.get('runTime')) { }}
+				<h3>{{= movie.title }}</h3>
+				{{ if (movie.ratings || movie.runTime) { }}
 					<p>
-						{{ if (movie.get('ratings')) { }}
-							{{= movie.get('ratings')[0].code }} / 
+						{{ if (movie.ratings) { }}
+							{{= movie.ratings[0].code }} / 
 						{{ } }}
-						{{= App.formatRuntime(movie.get('runTime')) }}
+						{{= App.formatRuntime(movie.runTime) }}
 					</p>
 				{{ } }}
 				<h4 class="italic toggle"><b>View Showtimes</b> &raquo;</h4>
 			</div>
 			<div class="col-50">
 				<h3>Play Trailer</h3>
-				{{ if (movie.trailer.get('response').trailers.length > 0) { }}
+				{{ if (movie.trailer.response.trailers.length > 0) { }}
 				<div class="video">
 					<div class="bg"></div>
 					<div class="play-btn-circle">
@@ -26,7 +26,7 @@
 					</div>
 		        </div>
 				{{ } }}
-				{{ if (movie.trailer.get('response').trailers.length == 0) { }}
+				{{ if (movie.trailer.response.trailers.length == 0) { }}
 				<div class="video none">
 					<div class="msg">
 						<h1 class="italic">Sorry!</h1>
@@ -36,9 +36,9 @@
 				{{ } }}
 			</div>
 			<div class="toggle-content">
-				{{ if (movie.get('longDescription')) { }}
+				{{ if (movie.longDescription) { }}
 					<h4>DESCRIPTION</h4>
-					<p>{{= movie.get('longDescription') }}</p>
+					<p>{{= movie.longDescription }}</p>
 				{{ } }}
 				<h4>SHOWTIMES</h4>
 				{{ for (var date in movie.showtimes) { }}

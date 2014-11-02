@@ -1,6 +1,5 @@
 <!DOCTYPE html>
-<html>
-<!-- manifest="app.appcache" -->
+<html manifest="app.appcache">
   <head>
     <meta charset="utf-8">
     <meta content="IE=edge,chrome=1" http-equiv="X-UA-Compatible">
@@ -60,34 +59,34 @@
 </header>
 <main></main>
 <script type="text/template" id="template-deal-list">
-	{{ $(deals).each(function(i, deal) { }}
+	{{ $(App.cache.deals).each(function(i, deal) { }}
 		<article>
 			<div class="col-33">
-				<img src="{{= deal.get('_links').image.href }}" />
+				<img src="{{= deal._links.image.href }}" />
 			</div>
 			<div class="col-66">
-				<h3>{{= deal.retailer.get('name') }}</h3>
-				<h3 class="italic">{{= deal.get('title') }}</h3>
+				<h3>{{= deal.retailer.name }}</h3>
+				<h3 class="italic">{{= deal.title }}</h3>
 				<h4>DESCRIPTION</h4>
-				<p>{{= deal.get('description') }}</p>
+				<p>{{= deal.description }}</p>
 				<h4 class="italic toggle"><b>Terms + Conditions</b> &raquo;</h4>
-				<p class="toggle-content">{{= deal.get('terms_and_conditions') }}</p>
+				<p class="toggle-content">{{= deal.terms_and_conditions }}</p>
 			</div>
 		</article>
 	{{ }) }}
 </script>
 <script type="text/template" id="template-event-list">
-	{{ $(events).each(function(i, event) { }}
+	{{ $(App.cache.events).each(function(i, event) { }}
 		<article>
 			<div class="col-33">
-				<img src="{{= event.get('_links').image.href }}" />
+				<img src="{{= event._links.image.href }}" />
 			</div>
 			<div class="col-66">
-				<h3>{{= event.get('name') }}</h3>
+				<h3>{{= event.name }}</h3>
 				<h4>LOCATION</h4>
-				<p>{{= event.get('location') }}</p>
+				<p>{{= event.location }}</p>
 				<h4>DESCRIPTION</h4>
-				<p>{{= event.get('description') }}</p>
+				<p>{{= event.description }}</p>
 				<h4 class="italic toggle"><b>See more info</b> &raquo;</h4>
 				<div class="toggle-content">
 					<h4>EVENT SCHEDULE</h4>
@@ -105,26 +104,26 @@
 	{{ }) }}
 </script>
 <script type="text/template" id="template-movie-list">
-	{{ $(movies).each(function(i, movie) { }}
+	{{ $(App.cache.movies).each(function(i, movie) { }}
 		<article data-index="{{= i }}">
 			<div class="col-25">
-				<img src="//{{= movie.get('preferredImage').uri }}" height="400" />
+				<img src="//{{= movie.preferredImage.uri }}" height="400" />
 			</div>
 			<div class="col-25">
-				<h3>{{= movie.get('title') }}</h3>
-				{{ if (movie.get('ratings') || movie.get('runTime')) { }}
+				<h3>{{= movie.title }}</h3>
+				{{ if (movie.ratings || movie.runTime) { }}
 					<p>
-						{{ if (movie.get('ratings')) { }}
-							{{= movie.get('ratings')[0].code }} / 
+						{{ if (movie.ratings) { }}
+							{{= movie.ratings[0].code }} / 
 						{{ } }}
-						{{= App.formatRuntime(movie.get('runTime')) }}
+						{{= App.formatRuntime(movie.runTime) }}
 					</p>
 				{{ } }}
 				<h4 class="italic toggle"><b>View Showtimes</b> &raquo;</h4>
 			</div>
 			<div class="col-50">
 				<h3>Play Trailer</h3>
-				{{ if (movie.trailer.get('response').trailers.length > 0) { }}
+				{{ if (movie.trailer.response.trailers.length > 0) { }}
 				<div class="video">
 					<div class="bg"></div>
 					<div class="play-btn-circle">
@@ -132,7 +131,7 @@
 					</div>
 		        </div>
 				{{ } }}
-				{{ if (movie.trailer.get('response').trailers.length == 0) { }}
+				{{ if (movie.trailer.response.trailers.length == 0) { }}
 				<div class="video none">
 					<div class="msg">
 						<h1 class="italic">Sorry!</h1>
@@ -142,9 +141,9 @@
 				{{ } }}
 			</div>
 			<div class="toggle-content">
-				{{ if (movie.get('longDescription')) { }}
+				{{ if (movie.longDescription) { }}
 					<h4>DESCRIPTION</h4>
-					<p>{{= movie.get('longDescription') }}</p>
+					<p>{{= movie.longDescription }}</p>
 				{{ } }}
 				<h4>SHOWTIMES</h4>
 				{{ for (var date in movie.showtimes) { }}
@@ -172,7 +171,7 @@
     </video>
 </script>
 <script type="text/template" id="template-service-list">
-	{{ $(services).each(function(i, service) { }}
+	{{ $(App.cache.services).each(function(i, service) { }}
 		<article>
 			<div class="col-50">
 				<img src="{{= service.img }}" />
@@ -186,16 +185,16 @@
 	{{ }) }}
 </script>
 <script type="text/template" id="template-store-list">
-	{{ $(stores).each(function(i, store) { }}
-		<article data-categories="{{= store.get('category_codes').join(',') }}" {{ if (store.deals.length > 0) { }}deals{{ } }}>
+	{{ $(App.cache.stores).each(function(i, store) { }}
+		<article data-categories="{{= store.category_codes.join(',') }}" {{ if (store.deals.length > 0) { }}deals{{ } }}>
 			<div class="col-33">
 				{{ if (store.retailer.hasLogo) { }}
-					<img src="//res.cloudinary.com/wlabs/image/upload/q_30,w_360,f_auto/{{= store.retailer.get('logo_ref') }}" />
+					<img src="//res.cloudinary.com/wlabs/image/upload/q_30,w_360,f_auto/{{= store.retailer.logo_ref }}" />
 				{{ } }}
 				{{ if (!store.retailer.hasLogo) { }}
 					<div class="retailer-logo">
 						<div>
-							<h1>{{= store.retailer.get('name') }}</h1>
+							<h1>{{= store.retailer.name }}</h1>
 							<h2>At Westfield</h2>
 						</div>
 					</div>
@@ -203,7 +202,7 @@
 			</div>
 			<div class="col-33">
 				<h4>FLOOR</h4>
-				<p>Level {{= store.get('level') }}</p>
+				<p>Level {{= store.level }}</p>
 				<h4>SHOP CATEGORIES</h4>
 				<p>{{= store.categories.join(', ') }}</p>
 				{{ if (store.deals.length > 0) { }}
@@ -216,9 +215,9 @@
 			<div class="col-33">
 				<h4>TODAY'S HOURS</h4>
 				<p>{{= App.formatStoreHours(store) }}</p>
-				{{ if (store.get('phone_number')) { }}
+				{{ if (store.phone_number) { }}
 					<h4>PHONE</h4>
-					<p>{{= store.get('phone_number') }}</p>
+					<p>{{= store.phone_number }}</p>
 				{{ } }}
 			</div>
 			{{ if (store.deals.length > 0) { }}
@@ -228,9 +227,9 @@
 			{{ if (store.deals.length == 0) { }}
 			<div class="clr">
 			{{ } }}
-				{{ if (store.get('description').length > 0) { }}
+				{{ if (store.description.length > 0) { }}
 				<h4>Description</h4>
-				<p>{{= store.get('description') }}</p>
+				<p>{{= store.description }}</p>
 				{{ } }}
 			</div>
 		</article>
@@ -245,8 +244,8 @@
 				<p data-code="*">Choose Category</p>
 				<ul>
 					<li data-code="*">All Categories</li>
-					{{ $(App.cache.categories.models).each(function(i, category) { }}
-					<li data-code="{{= category.get('code') }}" {{ if (category.get('children').length > 0) { }}subcategories{{ } }}>{{= category.get('name') }}</li>
+					{{ $(App.cache.categories).each(function(i, category) { }}
+					<li data-code="{{= category.code }}" {{ if (category.children.length > 0) { }}subcategories{{ } }}>{{= category.name }}</li>
 					{{ }) }}
 				</ul>
 			</div>

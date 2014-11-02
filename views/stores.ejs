@@ -1,14 +1,14 @@
 <script type="text/template" id="template-store-list">
-	{{ $(stores).each(function(i, store) { }}
-		<article data-categories="{{= store.get('category_codes').join(',') }}" {{ if (store.deals.length > 0) { }}deals{{ } }}>
+	{{ $(App.cache.stores).each(function(i, store) { }}
+		<article data-categories="{{= store.category_codes.join(',') }}" {{ if (store.deals.length > 0) { }}deals{{ } }}>
 			<div class="col-33">
 				{{ if (store.retailer.hasLogo) { }}
-					<img src="//res.cloudinary.com/wlabs/image/upload/q_30,w_360,f_auto/{{= store.retailer.get('logo_ref') }}" />
+					<img src="//res.cloudinary.com/wlabs/image/upload/q_30,w_360,f_auto/{{= store.retailer.logo_ref }}" />
 				{{ } }}
 				{{ if (!store.retailer.hasLogo) { }}
 					<div class="retailer-logo">
 						<div>
-							<h1>{{= store.retailer.get('name') }}</h1>
+							<h1>{{= store.retailer.name }}</h1>
 							<h2>At Westfield</h2>
 						</div>
 					</div>
@@ -16,7 +16,7 @@
 			</div>
 			<div class="col-33">
 				<h4>FLOOR</h4>
-				<p>Level {{= store.get('level') }}</p>
+				<p>Level {{= store.level }}</p>
 				<h4>SHOP CATEGORIES</h4>
 				<p>{{= store.categories.join(', ') }}</p>
 				{{ if (store.deals.length > 0) { }}
@@ -29,9 +29,9 @@
 			<div class="col-33">
 				<h4>TODAY'S HOURS</h4>
 				<p>{{= App.formatStoreHours(store) }}</p>
-				{{ if (store.get('phone_number')) { }}
+				{{ if (store.phone_number) { }}
 					<h4>PHONE</h4>
-					<p>{{= store.get('phone_number') }}</p>
+					<p>{{= store.phone_number }}</p>
 				{{ } }}
 			</div>
 			{{ if (store.deals.length > 0) { }}
@@ -41,9 +41,9 @@
 			{{ if (store.deals.length == 0) { }}
 			<div class="clr">
 			{{ } }}
-				{{ if (store.get('description').length > 0) { }}
+				{{ if (store.description.length > 0) { }}
 				<h4>Description</h4>
-				<p>{{= store.get('description') }}</p>
+				<p>{{= store.description }}</p>
 				{{ } }}
 			</div>
 		</article>
@@ -58,8 +58,8 @@
 				<p data-code="*">Choose Category</p>
 				<ul>
 					<li data-code="*">All Categories</li>
-					{{ $(App.cache.categories.models).each(function(i, category) { }}
-					<li data-code="{{= category.get('code') }}" {{ if (category.get('children').length > 0) { }}subcategories{{ } }}>{{= category.get('name') }}</li>
+					{{ $(App.cache.categories).each(function(i, category) { }}
+					<li data-code="{{= category.code }}" {{ if (category.children.length > 0) { }}subcategories{{ } }}>{{= category.name }}</li>
 					{{ }) }}
 				</ul>
 			</div>
