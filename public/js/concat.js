@@ -2369,7 +2369,7 @@ App.Views = {
                 return;
             }
 
-            // Fetch new centre
+            // Fetch new centre hours
             App.Collections.hours.fetch({
                 success: function(hours) {
                     console.log('api - centre hours');
