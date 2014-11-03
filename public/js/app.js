@@ -80,7 +80,7 @@ App = {
             // Cache not complete, build all
             if (!complete) {
                 localStorage.clear();
-                App.Views.header.render('Building Caches...');
+                App.Views.header.render('Building Cache...');
                 App.Views.events.render();
                 App.Views.movies.render();
                 App.Views.stores.render();
@@ -96,7 +96,7 @@ App = {
             var complete = (App.cache.completed.centreHours && App.cache.completed.events && App.cache.completed.movies && App.cache.completed.stores);
             if (complete) {
                 if (App.loading == 'Cache') {
-                    App.message('Check JS console for cache object.', 'Cache Finished for ' + App.date);
+                    App.message('<a data-bypass href="/deals">View Deals &raquo;</a>', 'Cache Finished (' + (new moment(App.date)).format('MMM D, YYYY') + ')');
                 }
                 App.cacheTools.save();
             }
@@ -782,7 +782,7 @@ App.Views.stores = new App.Views.Stores;
 
 App.Router = Backbone.Router.extend({
     routes: {
-        'cache'    : 'cache',
+        ''         : 'cache',
         'deals'    : 'deals',
         'events'   : 'events',
         'movies'   : 'movies',
