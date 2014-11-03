@@ -186,7 +186,7 @@
 </script>
 <script type="text/template" id="template-store-list">
 	{{ $(App.cache.stores).each(function(i, store) { }}
-		<article data-categories="{{= store.category_codes.join(',') }}" {{ if (store.deals.length > 0) { }}deals{{ } }}>
+		<article data-index="{{= i }}" data-categories="{{= store.category_codes.join(',') }}" {{ if (store.deals.length > 0) { }}deals{{ } }}>
 			<div class="col-33">
 				{{ if (store.retailer.hasLogo) { }}
 					<img src="//res.cloudinary.com/wlabs/image/upload/q_30,w_360,f_auto/{{= store.retailer.logo_ref }}" />
@@ -225,11 +225,22 @@
 				<h4><b>Take it with you - Use the Westfield App or Website for Maps &amp; Directions</b></h4>
 			{{ } }}
 			{{ if (store.deals.length == 0) { }}
-			<div class="clr">
+			<div class="clr auto">
 			{{ } }}
 				{{ if (store.description.length > 0) { }}
 				<h4>Description</h4>
 				<p>{{= store.description }}</p>
+				{{ } }}
+				{{ if (store.deals.length > 0) { }}
+					<h4>Deals and Offers</h4>
+					{{ $(store.deals).each(function(j, deal) { }}
+						{{ if (j == 3) return; }}
+						<div class="col-33 deal">
+							<h4><b>{{= deal.title }}</b></h4>
+							<img src="{{= deal._links.image.href }}" />
+							<p class="clr">{{= deal.description }}</p>
+						</div>
+					{{ }) }}
 				{{ } }}
 			</div>
 		</article>

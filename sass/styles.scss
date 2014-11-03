@@ -28,6 +28,10 @@ html {
   	clear: both;
   }
 
+  .auto {
+  	overflow: auto;
+  }
+
   .italic {
   	font-family: Georgia, serif;
 	font-style: italic;
@@ -324,8 +328,11 @@ main {
 		padding: 40px 340px;
 		position: relative;
 
-		> div {
-			float: left;
+		div {
+
+			&[class*="col-"] {
+				float: left;
+			}
 
 			&.col-66 {
 				width: 66.67%;
@@ -545,6 +552,12 @@ main {
 			.col-33 {
 				&:nth-child(2) {
 					padding-right: 40px;
+				}
+			}
+			.deal {
+				padding-right: 30px;
+				img {
+					margin: 15px auto;
 				}
 			}
 		}

@@ -1,6 +1,7 @@
 App = {
     cache: {
         completed: {
+            centreHours: false,
             events: false,
             movies: false,
             stores: false
@@ -74,11 +75,29 @@ App = {
         ]
     },
     cacheTools: {
+        build: function() {
+            var complete = (App.cache.completed.centreHours && App.cache.completed.events && App.cache.completed.movies && App.cache.completed.stores);
+            // Cache not complete, build all
+            if (!complete) {
+                localStorage.clear();
+                App.Views.header.render('Building Caches...');
+                App.Views.events.render();
+                App.Views.movies.render();
+                App.Views.stores.render();
+                App.load('Cache');
+            }
+            // Cache already complete, use local
+            else {
+                App.load('Cache');
+                App.cacheTools.checkStatus();
+            }
+        },
         checkStatus: function() {
             var complete = (App.cache.completed.centreHours && App.cache.completed.events && App.cache.completed.movies && App.cache.completed.stores);
-            if (App.loading == 'Cache' && complete) {
-                console.log('cache', App.cache);
-                App.message('Check JS console for cache object.', 'Cache Finished');
+            if (complete) {
+                if (App.loading == 'Cache') {
+                    App.message('Check JS console for cache object.', 'Cache Finished for ' + App.date);
+                }
                 App.cacheTools.save();
             }
         },
@@ -89,19 +108,16 @@ App = {
                 // Use local cache if valid
                 if (localStorage.digitalStorefrontLastCached == App.date) {
                     App.cache = JSON.parse(localStorage.digitalStorefrontCache);
-                    console.log('local cache', App.cache);
-                }
-                // If local cache is invalid, wipe it
-                else {
-                    console.log('clear cache')
-                    localStorage.clear();
+                    console.log('loaded cache from local', localStorage);
                 }
             }
         },
         save: function() {
-            console.log('Cache object complete.');
-            localStorage.setItem('digitalStorefrontLastCached', App.date);
-            localStorage.setItem('digitalStorefrontCache', JSON.stringify(App.cache));
+            if (localStorage.digitalStorefrontLastCached != App.date) {
+                localStorage.setItem('digitalStorefrontLastCached', App.date);
+                localStorage.setItem('digitalStorefrontCache', JSON.stringify(App.cache));
+                console.log('saved cache to local');
+            }
         }
     },
     centre: {
@@ -275,9 +291,9 @@ App.Collections = {
         cache: function(stores, cb) {
             var getStoreHours = function(storeId) {
                 var storeHoursObj = {};
-                $(App.cache.storeHours).each(function(i, obj) {
-                    if (parseInt(obj.store_id) == storeId) {
-                        storeHoursObj = obj;
+                $(App.cache.storeHours).each(function(i, hours) {
+                    if (parseInt(hours.store_id) == storeId) {
+                        storeHoursObj = hours;
                         return;
                     }
                 });
@@ -288,8 +304,8 @@ App.Collections = {
             var deals = {};
             $(App.cache.deals).each(function(i, deal) {
                 $(deal.deal_stores).each(function(j, obj) {
-                    if (deals.hasOwnProperty(obj.store_service_id)) deals[obj.store_service_id].push(obj);
-                    else deals[obj.store_service_id] = [obj];
+                    if (deals.hasOwnProperty(obj.store_service_id)) deals[obj.store_service_id].push(deal);
+                    else deals[obj.store_service_id] = [deal];
                 });
             });
             var retailersFetched = 0;
@@ -594,7 +610,6 @@ App.Views = {
             App.Collections.hours.fetch({
                 success: function(hours) {
                     console.log('api - centre hours');
-                    console.log(hours.models);
                     var range;
                     if (hours.at(0).get('closed')) {
                         range = 'Closed today.';
@@ -637,9 +652,9 @@ App.Views = {
         playTrailer: function(e) {
             if ($(e.currentTarget).is('.none')) return;
             var index = $(e.currentTarget).parents('article').attr('data-index');
-            var movie = App.Collections.movies.at(index);
+            var movie = App.cache.movies[index];
             $(e.currentTarget).html(_.template($('#template-movie-trailer').html(), {
-                trailers: movie.trailer.get('response').trailers
+                trailers: movie.trailer.response.trailers
             }));
         },
         render: function() {
@@ -792,19 +807,7 @@ App.Router = Backbone.Router.extend({
         });
     },
     cache: function() {
-        // Cache not complete
-        if (!(App.cache.completed.centreHours && App.cache.completed.events && App.cache.completed.movies && App.cache.completed.stores)) {
-            App.Views.header.render('Building Caches...');
-            App.Views.events.render();
-            App.Views.movies.render();
-            App.Views.stores.render();
-            App.load('Cache');
-        }
-        // Cache already complete
-        else {
-            App.load('Cache');
-            App.cacheTools.checkStatus();
-        }
+        App.cacheTools.build();
     },
     deals: function() {
         App.load('Deals');
